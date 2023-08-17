@@ -1,22 +1,32 @@
-#include "config.hpp"
-#include <EEPROM.h>
+#include <Preferences.h>
 
-#define HEADER_MAGIC "PLANT"
+#include "config.h"
+
+#define CONFIG_NAMESPACE "config"
+#define CONFIG_MAGIC "PLANT"
 
 int config_init()
 {
     int ret = 0;
-    char header[6];
+    char magic[6];
+    Preferences pref;
 
-    EEPROM.begin(CONFIG_EEPROM_SIZE);
-    EEPROM.get(0, header);
-    DEBUG_PRINT("header: %s", header);
-    if (memcmp(header, HEADER_MAGIC, 5) != 0) {
-        EEPROM.put(0, HEADER_MAGIC);
-        ret = EEPROM.commit();
-        if (ret != true) ret = -ENODEV;
-        ERROR_PRINT("EEPROM init failed ret: %d", ret);
+    pref.begin(CONFIG_NAMESPACE, false);
+    ret = pref.getString("magic", magic, 6);
+    if(ret == 0){
+        ERROR_PRINT("config magic not found, init config");
+        pref.clear();
+        pref.putString("magic", CONFIG_MAGIC);
     }
+    else if(strcmp(magic, CONFIG_MAGIC) != 0){
+        ERROR_PRINT("config magic not match, init config");
+        pref.clear();
+        pref.putString("magic", CONFIG_MAGIC);
+    }
+    else{
+        DEBUG_PRINT("config magic match, load config");
+    }
+    pref.end();
 
     return ret;
 }
