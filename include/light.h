@@ -3,5 +3,6 @@
 
 int light_init();
 float light_read();
+int light_power_off();
 
 #endif
