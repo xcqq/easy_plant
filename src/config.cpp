@@ -5,38 +5,9 @@
 #define CONFIG_NAMESPACE "config"
 #define CONFIG_MAGIC "PLANT"
 
-struct config_header {
-    char magic[6];
-    uint8_t version; // version update need to clear all config
-    uint8_t sub_version; // sub version update can keep config
-    uint8_t reserved[64];
-    // TODO: checksum needed?
-};
-
-
-#define CONFIG_PLANT_NAME_LEN 32
-struct config_plant_info {
-    char name[CONFIG_PLANT_NAME_LEN];
-    uint16_t water_min;
-    uint16_t water_max;
-    uint16_t fertilize_min;
-    uint16_t fertilize_max;
-    uint16_t temp_min;
-    uint16_t temp_max;
-    uint16_t humi_min;
-    uint16_t humi_max;
-    uint16_t light_min;
-    uint16_t light_max;
-    uint16_t light_total_min;
-    uint16_t light_total_max;
-    uint8_t reserved[64];
-};
-struct config_settings {
-    uint16_t capture_interval ; // in seconds
-    uint16_t refresh_interval ; // in seconds
-    uint16_t upload_interval ; // in seconds
-    uint8_t reserved[64];
-};
+struct config_header config_header;
+struct config_plant_info config_plant_info;
+struct config_settings config_settings;
 
 int config_init()
 {
@@ -64,15 +35,34 @@ int config_init()
     return ret;
 }
 
+int config_load_header(struct config_header *header)
+{
+    int ret = 0;
+    Preferences pref;
+
+    pref.begin(CONFIG_NAMESPACE, false);
+    ret = pref.getBytes("header", header, sizeof(struct config_header));
+    if(ret == 0){
+        ERROR_PRINT("config header not found");
+        ERROR_PRINT("reset to default");
+        pref.putBytes("header", &default_header, sizeof(struct config_header));
+    }
+    pref.end();
+
+    return ret;
+}
+
 int config_load_plant_info(struct config_plant_info *info)
 {
     int ret = 0;
     Preferences pref;
 
-    pref.begin(CONFIG_NAMESPACE, true);
+    pref.begin(CONFIG_NAMESPACE, false);
     ret = pref.getBytes("plant_info", info, sizeof(struct config_plant_info));
     if(ret == 0){
         ERROR_PRINT("config plant info not found");
+        ERROR_PRINT("reset to default");
+        pref.putBytes("plant_info", &default_plant_info, sizeof(struct config_plant_info));
     }
     pref.end();
 
@@ -84,10 +74,27 @@ int config_load_settings(struct config_settings *settings)
     int ret = 0;
     Preferences pref;
 
-    pref.begin(CONFIG_NAMESPACE, true);
+    pref.begin(CONFIG_NAMESPACE, false);
     ret = pref.getBytes("settings", settings, sizeof(struct config_settings));
     if(ret == 0){
         ERROR_PRINT("config settings not found");
+        ERROR_PRINT("reset to default");
+        pref.putBytes("settings", &default_settings, sizeof(struct config_settings));
+    }
+    pref.end();
+
+    return ret;
+}
+
+int config_save_header(struct config_header *header)
+{
+    int ret = 0;
+    Preferences pref;
+
+    pref.begin(CONFIG_NAMESPACE, false);
+    ret = pref.putBytes("header", header, sizeof(struct config_header));
+    if(ret == 0){
+        ERROR_PRINT("config header save failed");
     }
     pref.end();
 
